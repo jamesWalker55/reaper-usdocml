@@ -20,6 +20,20 @@ class Param(NamedTuple):
     name: str
     optional: bool
 
+    def declaration(self):
+        return f"{self.name}{'?' if self.optional else ''}: {self.type}"
+
+    @staticmethod
+    def validate_order(params: list["Param"]):
+        prev_optional = False
+        for p in params:
+            if prev_optional and not p.optional:
+                raise TranspileError(
+                    p.declaration(),
+                    "positional parameter cannot follow optional parameter",
+                )
+            prev_optional = p.optional
+
 
 class FunctionDeclaration(NamedTuple):
     name: str
@@ -30,9 +44,13 @@ class FunctionDeclaration(NamedTuple):
     varargs: bool
 
     def function_declaration(self):
-        params = ", ".join(
-            [f"{p.name}{'?' if p.optional else ''}: {p.type}" for p in self.params]
-        )
+        try:
+            Param.validate_order(self.params)
+        except TranspileError as e:
+            print(f"[ERROR] invalid param order for: {self}")
+            raise e
+
+        params = ", ".join([p.declaration() for p in self.params])
         if self.varargs:
             params += ", ...args: any[]"
 
@@ -68,9 +86,13 @@ class FunctionDeclaration(NamedTuple):
             return functioncall
 
     def method_declaration(self):
-        params = ", ".join(
-            [f"{p.name}{'?' if p.optional else ''}: {p.type}" for p in self.params]
-        )
+        try:
+            Param.validate_order(self.params)
+        except TranspileError as e:
+            print(f"[ERROR] invalid param order for: {self}")
+            raise e
+
+        params = ", ".join([p.declaration() for p in self.params])
         if self.varargs:
             params += ", ...args: any[]"
 
@@ -140,9 +162,14 @@ def to_typescriptlua(custom_types: list[CustomType], namespaces: list[Namespace]
     # generate namespaces
     for namespace in namespaces:
         # convert functions to ts
-        namespace_functions = "\n\n".join(
-            [f.function_declaration() for f in namespace.functions]
-        )
+        namespace_functions = []
+        for f in namespace.functions:
+            try:
+                namespace_functions.append(f.function_declaration())
+            except TranspileError as e:
+                print(f"[ERROR] {e}")
+                continue
+        namespace_functions = "\n\n".join(namespace_functions)
         namespace_functions = textwrap.indent(namespace_functions, "  ")
 
         # validate that param/retval types are valid
