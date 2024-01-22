@@ -33,7 +33,7 @@ def usdocml_to_ts_declaration(root: ET.Element):
     assert root.tag == "USDocBloc", "expected document root tag to be 'USDocBloc'"
 
     # in each subsection, find and parse the lua functioncall
-    functioncalls: list[tuple[lua.FunctionCall, Optional[str]]] = []
+    functioncalls: list[tuple[lua.FunctionCall, Optional[str], Optional[str]]] = []
     for docbloc in root:
         assert docbloc.tag == "US_DocBloc"
 
@@ -62,7 +62,20 @@ def usdocml_to_ts_declaration(root: ET.Element):
             if len(description) == 0:
                 description = None
 
-        functioncalls.append((parsed, description))
+        # find and parse the deprecated
+        deprecated = docbloc.find("deprecated")
+        if deprecated is not None:
+            deprecated = deprecated.attrib.get("alternative", None)
+
+        if deprecated is not None:
+            # preemptively remove "comment end" symbols, since this seems like the kind
+            # of shit USDocML will eventually devolve to
+            deprecated = deprecated.replace("*/", "* /")
+            deprecated = deprecated.strip()
+            if len(deprecated) == 0:
+                deprecated = None
+
+        functioncalls.append((parsed, description, deprecated))
 
     custom_types: dict[str, ts.CustomType] = {}
 
@@ -98,7 +111,7 @@ def usdocml_to_ts_declaration(root: ET.Element):
             return x
 
     namespaces: dict[str, ts.Namespace] = {}
-    for fc, description in functioncalls:
+    for fc, description, deprecated in functioncalls:
         if fc.namespace.startswith("{") and fc.namespace.endswith("}"):
             # class method
             class_name = sanitise_type_name(fc.namespace[1:-1])
@@ -121,7 +134,12 @@ def usdocml_to_ts_declaration(root: ET.Element):
         retvals: list[str] = [get_type(rt.type) for rt in fc.retvals]
 
         declaration = ts.FunctionDeclaration(
-            fc.name, description, params, retvals, fc.varargs
+            fc.name,
+            description,
+            deprecated,
+            params,
+            retvals,
+            fc.varargs,
         )
         target.append(declaration)
 

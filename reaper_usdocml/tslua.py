@@ -24,6 +24,7 @@ class Param(NamedTuple):
 class FunctionDeclaration(NamedTuple):
     name: str
     description: Optional[str]
+    deprecated: Optional[str]
     params: list[Param]
     return_types: list[str]
     varargs: bool
@@ -43,8 +44,17 @@ class FunctionDeclaration(NamedTuple):
 
         functioncall = f"function {self.name}({params}): {return_type}"
 
+        docstring_parts = []
+
         if self.description:
-            docstring = "/**\n{}\n */".format(textwrap.indent(self.description, " * "))
+            docstring_parts.append(self.description)
+
+        if self.deprecated:
+            docstring_parts.append(f"@deprecated {self.deprecated}")
+
+        if len(docstring_parts) > 0:
+            docstring = "\n\n".join(docstring_parts)
+            docstring = "/**\n{}\n */".format(textwrap.indent(docstring, " * "))
             return f"{docstring}\n{functioncall}"
         else:
             return functioncall
