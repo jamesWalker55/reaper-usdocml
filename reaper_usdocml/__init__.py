@@ -59,6 +59,13 @@ def usdocml_to_ts_declaration(root: ET.Element):
             # of shit USDocML will eventually devolve to
             description = description.replace("*/", "* /")
             description = description.strip()
+            description = "\n\n".join(
+                [
+                    line.strip()
+                    for line in description.splitlines()
+                    if len(line.strip()) > 0
+                ]
+            )
             if len(description) == 0:
                 description = None
 

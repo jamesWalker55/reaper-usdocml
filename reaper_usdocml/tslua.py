@@ -54,7 +54,13 @@ class FunctionDeclaration(NamedTuple):
 
         if len(docstring_parts) > 0:
             docstring = "\n\n".join(docstring_parts)
-            docstring = "/**\n{}\n */".format(textwrap.indent(docstring, " * "))
+            docstring = "/**\n{}\n */".format(
+                textwrap.indent(
+                    docstring,
+                    " * ",
+                    lambda _: True,
+                )
+            )
             return f"{docstring}\n{functioncall}"
         else:
             return functioncall
