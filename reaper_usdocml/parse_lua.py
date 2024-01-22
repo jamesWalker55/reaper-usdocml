@@ -1,18 +1,11 @@
-import html
 import re
 import xml.etree.ElementTree as ET
-from collections import Counter
-from dataclasses import dataclass
-from typing import NamedTuple, Optional, Union
+from typing import NamedTuple, Optional
 
 
 class ParseError(Exception):
     def __init__(self, source_text: str, msg: str) -> None:
         super().__init__(f"{msg}: {source_text!r}")
-
-
-def warn(source_text: str, msg: str):
-    print(f"[WARNING] {msg}: {source_text!r}")
 
 
 class RetVal(NamedTuple):
@@ -170,8 +163,8 @@ class FunctionCall(NamedTuple):
 
 
 def main():
-    from .parse_doc import parse_usdocml
     from .hard_fix import hard_fix
+    from .parse_doc import parse_usdocml
 
     with open("Reaper_Api_Documentation.USDocML", "r", encoding="utf8") as f:
         xml_text = hard_fix(f.read())

@@ -1,20 +1,35 @@
+import json
+import xml.etree.ElementTree as ET
+from argparse import ArgumentParser
+from pathlib import Path
+from typing import Optional
+
 from . import parse_lua as lua
 from . import tslua as ts
-from .hard_fix import hard_fix
 from .parse_doc import parse_usdocml
 
 
-def main():
-    # read the USDocML into an XML tree
-    with open("Reaper_Api_Documentation.USDocML", "r", encoding="utf8") as f:
-        xml_text = hard_fix(f.read())
+def parse_args():
+    parser = ArgumentParser()
+    parser.add_argument("input", type=Path, help="path to the .usdocml file")
+    parser.add_argument("output", type=Path, help="path to the output .d.ts file")
+    parser.add_argument(
+        "-r",
+        "--replacements",
+        type=Path,
+        help="path to an optional JSON file containing string replacements for the input file",
+    )
+    parser.add_argument(
+        "-f",
+        "--write-fixed",
+        type=Path,
+        help="path to an optional output XML file with the string replacements applied",
+    )
+    return parser.parse_args()
 
-    with open("fixed.xml", "w", encoding="utf8") as f:
-        f.write(xml_text)
 
-    root = parse_usdocml(xml_text)
-
-    assert root.tag == "USDocBloc"
+def usdocml_to_ts_declaration(root: ET.Element):
+    assert root.tag == "USDocBloc", "expected document root tag to be 'USDocBloc'"
 
     # in each subsection, find and parse the lua functioncall
     functioncalls: list[lua.FunctionCall] = []
@@ -92,9 +107,46 @@ def main():
         declaration = ts.FunctionDeclaration(fc.name, desc, params, retvals, fc.varargs)
         target.append(declaration)
 
-    with open("src/reaper.d.ts", "w", encoding="utf8") as f:
-        text = ts.to_typescriptlua(
-            list(custom_types.values()),
-            list(namespaces.values()),
-        )
-        f.write(text)
+    return ts.to_typescriptlua(
+        list(custom_types.values()),
+        list(namespaces.values()),
+    )
+
+
+def main():
+    args = parse_args()
+
+    input_path: Path = args.input
+    output_path: Path = args.output
+    replacements_path: Optional[Path] = args.replacements
+    fixed_path: Optional[Path] = args.write_fixed
+
+    # read the shitty xml
+    with open(input_path, "r", encoding="utf8") as f:
+        input_text = f.read()
+
+    # apply fixes if provided
+    if replacements_path is not None:
+        with open(replacements_path, "r", encoding="utf8") as f:
+            replacements_json = json.load(f)
+
+        assert isinstance(replacements_json, dict), "replacements must be a dictionary"
+        for src, dst in replacements_json.items():
+            assert isinstance(src, str), "dictionary key must be a string"
+            assert isinstance(dst, str), "dictionary value must be a string"
+
+            input_text = input_text.replace(src, dst)
+
+    # parse the fixed xml
+    root = parse_usdocml(input_text)
+
+    # write optional fixed XML
+    if fixed_path is not None:
+        fixed_text = ET.tostring(root, encoding="unicode")
+        with open(fixed_path, "w", encoding="utf8") as f:
+            f.write(fixed_text)
+
+    # convert to typescript declarations
+    ts_declaration = usdocml_to_ts_declaration(root)
+    with open(output_path, "w", encoding="utf8") as f:
+        f.write(ts_declaration)

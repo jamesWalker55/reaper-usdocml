@@ -1,6 +1,5 @@
-import re
 import textwrap
-from typing import Literal, NamedTuple, Optional, Union, get_args
+from typing import Literal, NamedTuple, Optional, get_args
 
 PREAMBLE = """\
 // https://stackoverflow.com/questions/56737033/how-to-define-an-opaque-type-in-typescript
