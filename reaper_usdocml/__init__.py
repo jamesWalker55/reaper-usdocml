@@ -20,8 +20,8 @@ def parse_args():
         help="path to an optional JSON file containing string replacements for the input file",
     )
     parser.add_argument(
-        "-f",
-        "--write-fixed",
+        "-w",
+        "--write-replaced",
         type=Path,
         help="path to an optional output XML file with the string replacements applied",
     )
@@ -119,7 +119,7 @@ def main():
     input_path: Path = args.input
     output_path: Path = args.output
     replacements_path: Optional[Path] = args.replacements
-    fixed_path: Optional[Path] = args.write_fixed
+    replaced_path: Optional[Path] = args.write_replaced
 
     # read the shitty xml
     with open(input_path, "r", encoding="utf8") as f:
@@ -137,14 +137,13 @@ def main():
 
             input_text = input_text.replace(src, dst)
 
+        # write optional fixed XML
+        if replaced_path is not None:
+            with open(replaced_path, "w", encoding="utf8") as f:
+                f.write(input_text)
+
     # parse the fixed xml
     root = parse_usdocml(input_text)
-
-    # write optional fixed XML
-    if fixed_path is not None:
-        fixed_text = ET.tostring(root, encoding="unicode")
-        with open(fixed_path, "w", encoding="utf8") as f:
-            f.write(fixed_text)
 
     # convert to typescript declarations
     ts_declaration = usdocml_to_ts_declaration(root)
