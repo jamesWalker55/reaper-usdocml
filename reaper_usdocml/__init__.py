@@ -1,4 +1,5 @@
 import json
+import textwrap
 import xml.etree.ElementTree as ET
 from argparse import ArgumentParser
 from pathlib import Path
@@ -32,19 +33,36 @@ def usdocml_to_ts_declaration(root: ET.Element):
     assert root.tag == "USDocBloc", "expected document root tag to be 'USDocBloc'"
 
     # in each subsection, find and parse the lua functioncall
-    functioncalls: list[lua.FunctionCall] = []
+    functioncalls: list[tuple[lua.FunctionCall, Optional[str]]] = []
     for docbloc in root:
         assert docbloc.tag == "US_DocBloc"
 
+        # parse the Lua function call
         lua_functioncall = docbloc.find('functioncall[@prog_lang="lua"]')
         if lua_functioncall is None:
             continue
 
         try:
             parsed = lua.FunctionCall.from_element(lua_functioncall)
-            functioncalls.append(parsed)
         except lua.ParseError as e:
             print(f"[ERROR] {e}")
+            continue
+
+        # find and parse the description
+        description = docbloc.find("description")
+        if description is not None:
+            description = description.text
+
+        if description is not None:
+            description = textwrap.dedent(description)
+            # preemptively remove "comment end" symbols, since this seems like the kind
+            # of shit USDocML will eventually devolve to
+            description = description.replace("*/", "* /")
+            description = description.strip()
+            if len(description) == 0:
+                description = None
+
+        functioncalls.append((parsed, description))
 
     custom_types: dict[str, ts.CustomType] = {}
 
@@ -80,7 +98,7 @@ def usdocml_to_ts_declaration(root: ET.Element):
             return x
 
     namespaces: dict[str, ts.Namespace] = {}
-    for fc in functioncalls:
+    for fc, description in functioncalls:
         if fc.namespace.startswith("{") and fc.namespace.endswith("}"):
             # class method
             class_name = sanitise_type_name(fc.namespace[1:-1])
@@ -101,10 +119,10 @@ def usdocml_to_ts_declaration(root: ET.Element):
             for p in fc.params
         ]
         retvals: list[str] = [get_type(rt.type) for rt in fc.retvals]
-        # TODO: Fix description
-        desc = None
 
-        declaration = ts.FunctionDeclaration(fc.name, desc, params, retvals, fc.varargs)
+        declaration = ts.FunctionDeclaration(
+            fc.name, description, params, retvals, fc.varargs
+        )
         target.append(declaration)
 
     return ts.to_typescriptlua(
