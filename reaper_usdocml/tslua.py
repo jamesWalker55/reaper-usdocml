@@ -30,7 +30,9 @@ class FunctionDeclaration(NamedTuple):
     varargs: bool
 
     def function_declaration(self):
-        params = ", ".join([f"{p.name}: {p.type}" for p in self.params])
+        params = ", ".join(
+            [f"{p.name}{'?' if p.optional else ''}: {p.type}" for p in self.params]
+        )
         if self.varargs:
             params += ", ...args: any[]"
 
@@ -66,7 +68,9 @@ class FunctionDeclaration(NamedTuple):
             return functioncall
 
     def method_declaration(self):
-        params = ", ".join([f"{p.name}: {p.type}" for p in self.params])
+        params = ", ".join(
+            [f"{p.name}{'?' if p.optional else ''}: {p.type}" for p in self.params]
+        )
         if self.varargs:
             params += ", ...args: any[]"
 
