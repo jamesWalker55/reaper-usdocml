@@ -162,35 +162,34 @@ class FunctionCall(NamedTuple):
         return cls(functionname, namespace, params, retvals, varargs)
 
 
-def main():
-    from .hard_fix import hard_fix
-    from .parse_doc import parse_usdocml
+# def main():
+#     from .parse_doc import parse_usdocml
 
-    with open("Reaper_Api_Documentation.USDocML", "r", encoding="utf8") as f:
-        xml_text = hard_fix(f.read())
+#     with open("Reaper_Api_Documentation.USDocML", "r", encoding="utf8") as f:
+#         xml_text = hard_fix(f.read())
 
-    with open("fixed.xml", "w", encoding="utf8") as f:
-        f.write(xml_text)
+#     with open("fixed.xml", "w", encoding="utf8") as f:
+#         f.write(xml_text)
 
-    root = parse_usdocml(xml_text)
+#     root = parse_usdocml(xml_text)
 
-    assert root.tag == "USDocBloc"
+#     assert root.tag == "USDocBloc"
 
-    with open("temp_lua_calls.txt", "w", encoding="utf8") as f:
-        for docbloc in root:
-            assert docbloc.tag == "US_DocBloc"
+#     with open("temp_lua_calls.txt", "w", encoding="utf8") as f:
+#         for docbloc in root:
+#             assert docbloc.tag == "US_DocBloc"
 
-            lua_functioncall = docbloc.find('functioncall[@prog_lang="lua"]')
-            if lua_functioncall is None:
-                continue
+#             lua_functioncall = docbloc.find('functioncall[@prog_lang="lua"]')
+#             if lua_functioncall is None:
+#                 continue
 
-            try:
-                parsed = FunctionCall.from_element(lua_functioncall)
-                print(parsed, file=f)
-            except ParseError as e:
-                print(f"[ERROR] {e}", file=f)
-                print(f"[ERROR] {e}")
+#             try:
+#                 parsed = FunctionCall.from_element(lua_functioncall)
+#                 print(parsed, file=f)
+#             except ParseError as e:
+#                 print(f"[ERROR] {e}", file=f)
+#                 print(f"[ERROR] {e}")
 
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
