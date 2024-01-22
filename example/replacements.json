@@ -38,5 +38,9 @@
   "ImGui_TextFilter filterImGui_Context ctx": "ImGui_TextFilter filter, ImGui_Context ctx",
   " integer command_id bool": " integer command_id",
   "gfx.blitext(source,coordinatelist,rotation)": "gfx.blitext(integer source, table coordinatelist, number rotation)",
-  "olean retval = {reaper.array}.resize(size)": "olean retval = {reaper.array}.resize(integer size)"
+  "olean retval = {reaper.array}.resize(size)": "olean retval = {reaper.array}.resize(integer size)",
+  "optional HWND hwndParent": "HWND hwndParent",
+  "optional string style": "string style",
+  "optional integer flagsIn, ImGui_Function callbackIn": "integer flagsIn, ImGui_Function callbackIn",
+  "optional number size_wIn, optional number size_hIn, integer flagsIn, ImGui_Function callbackIn": "number size_wIn, number size_hIn, integer flagsIn, ImGui_Function callbackIn"
 }
