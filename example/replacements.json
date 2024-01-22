@@ -36,5 +36,7 @@
   " number scaleImGui_Image img": " number scale, ImGui_Image img",
   "ImGui_Context ctxImGui_Font font": "ImGui_Context ctx, ImGui_Font font",
   "ImGui_TextFilter filterImGui_Context ctx": "ImGui_TextFilter filter, ImGui_Context ctx",
-  " integer command_id bool": " integer command_id"
+  " integer command_id bool": " integer command_id",
+  "gfx.blitext(source,coordinatelist,rotation)": "gfx.blitext(integer source, table coordinatelist, number rotation)",
+  "olean retval = {reaper.array}.resize(size)": "olean retval = {reaper.array}.resize(integer size)"
 }
