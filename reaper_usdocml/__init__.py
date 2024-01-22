@@ -23,7 +23,7 @@ def parse_args():
         "-w",
         "--write-replaced",
         type=Path,
-        help="path to an optional output XML file with the string replacements applied",
+        help="path to an optional output usdocml path with the string replacements applied",
     )
     return parser.parse_args()
 
