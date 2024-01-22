@@ -32,18 +32,50 @@ def parse_args():
 def usdocml_to_ts_declaration(root: ET.Element):
     assert root.tag == "USDocBloc", "expected document root tag to be 'USDocBloc'"
 
-    # in each subsection, find and parse the lua functioncall
-    functioncalls: list[tuple[lua.FunctionCall, Optional[str], Optional[str]]] = []
+    custom_types: dict[str, ts.CustomType] = {}
+    namespaces: dict[str, ts.Namespace] = {}
+
+    def sanitise_type_name(name: str) -> str:
+        return name.replace(".", "_")
+
+    def sanitise_param_name(name: str) -> str:
+        if name in {"in", "function"}:
+            return f"_{name}"
+
+        return name.replace(".", "_")
+
+    def get_type(x: str) -> str:
+        # handle standard types
+        if x in {"int", "integer", "number"}:
+            return "number"
+        elif x == "string":
+            return "string"
+        elif x == "boolean":
+            return "boolean"
+        elif x == "table":
+            return "object"
+        elif x == "function":
+            return "Function"
+
+        # handle custom opaque type
+        x = sanitise_type_name(x)
+        if x in custom_types:
+            return x
+        else:
+            ct = ts.CustomType(x, [])
+            custom_types[x] = ct
+            return x
+
     for docbloc in root:
         assert docbloc.tag == "US_DocBloc"
 
         # parse the Lua function call
-        lua_functioncall = docbloc.find('functioncall[@prog_lang="lua"]')
-        if lua_functioncall is None:
+        fc_element = docbloc.find('functioncall[@prog_lang="lua"]')
+        if fc_element is None:
             continue
 
         try:
-            parsed = lua.FunctionCall.from_element(lua_functioncall)
+            fc = lua.FunctionCall.from_element(fc_element)
         except lua.ParseError as e:
             print(f"[ERROR] {e}")
             continue
@@ -82,43 +114,7 @@ def usdocml_to_ts_declaration(root: ET.Element):
             if len(deprecated) == 0:
                 deprecated = None
 
-        functioncalls.append((parsed, description, deprecated))
-
-    custom_types: dict[str, ts.CustomType] = {}
-
-    def sanitise_type_name(name: str) -> str:
-        return name.replace(".", "_")
-
-    def sanitise_param_name(name: str) -> str:
-        if name in {"in", "function"}:
-            return f"_{name}"
-
-        return name.replace(".", "_")
-
-    def get_type(x: str) -> str:
-        # handle standard types
-        if x in {"int", "integer", "number"}:
-            return "number"
-        elif x == "string":
-            return "string"
-        elif x == "boolean":
-            return "boolean"
-        elif x == "table":
-            return "object"
-        elif x == "function":
-            return "Function"
-
-        # handle custom opaque type
-        x = sanitise_type_name(x)
-        if x in custom_types:
-            return x
-        else:
-            ct = ts.CustomType(x, [])
-            custom_types[x] = ct
-            return x
-
-    namespaces: dict[str, ts.Namespace] = {}
-    for fc, description, deprecated in functioncalls:
+        # determine if the function belongs to a namespace or a class method
         if fc.namespace.startswith("{") and fc.namespace.endswith("}"):
             # class method
             class_name = sanitise_type_name(fc.namespace[1:-1])
@@ -126,7 +122,6 @@ def usdocml_to_ts_declaration(root: ET.Element):
                 custom_types[class_name] = ts.CustomType(class_name, [])
 
             target = custom_types[class_name].methods
-
         else:
             if fc.namespace not in namespaces:
                 namespaces[fc.namespace] = ts.Namespace(fc.namespace, [])
