@@ -85,34 +85,34 @@ def usdocml_to_ts_declaration(root: ET.Element):
         if description is not None:
             description = description.text
 
-        if description is not None:
-            description = textwrap.dedent(description)
-            # preemptively remove "comment end" symbols, since this seems like the kind
-            # of shit USDocML will eventually devolve to
-            description = description.replace("*/", "* /")
-            description = description.strip()
-            description = "\n\n".join(
-                [
-                    line.strip()
-                    for line in description.splitlines()
-                    if len(line.strip()) > 0
-                ]
-            )
-            if len(description) == 0:
-                description = None
+            if description is not None:
+                description = textwrap.dedent(description)
+                # preemptively remove "comment end" symbols, since this seems like the kind
+                # of shit USDocML will eventually devolve to
+                description = description.replace("*/", "* /")
+                description = description.strip()
+                description = "\n\n".join(
+                    [
+                        line.strip()
+                        for line in description.splitlines()
+                        if len(line.strip()) > 0
+                    ]
+                )
+                if len(description) == 0:
+                    description = None
 
         # find and parse the deprecated
         deprecated = docbloc.find("deprecated")
         if deprecated is not None:
             deprecated = deprecated.attrib.get("alternative", None)
 
-        if deprecated is not None:
-            # preemptively remove "comment end" symbols, since this seems like the kind
-            # of shit USDocML will eventually devolve to
-            deprecated = deprecated.replace("*/", "* /")
-            deprecated = deprecated.strip()
-            if len(deprecated) == 0:
-                deprecated = None
+            if deprecated is not None:
+                # preemptively remove "comment end" symbols, since this seems like the kind
+                # of shit USDocML will eventually devolve to
+                deprecated = deprecated.replace("*/", "* /")
+                deprecated = deprecated.strip()
+                if len(deprecated) == 0:
+                    deprecated = None
 
         # determine if the function belongs to a namespace or a class method
         if fc.namespace.startswith("{") and fc.namespace.endswith("}"):
