@@ -43,7 +43,7 @@ class FunctionDeclaration(NamedTuple):
     return_types: list[str]
     varargs: bool
 
-    def function_declaration(self):
+    def _params_declaration(self):
         try:
             Param.validate_order(self.params)
         except TranspileError as e:
@@ -53,17 +53,18 @@ class FunctionDeclaration(NamedTuple):
         params = ", ".join([p.declaration() for p in self.params])
         if self.varargs:
             params += ", ...args: any[]"
+        return params
 
+    def _retvals_declaration(self):
         if len(self.return_types) == 1:
-            return_type = self.return_types[0]
+            return self.return_types[0]
         elif len(self.return_types) > 1:
             return_type = ", ".join([str(rt) for rt in self.return_types])
-            return_type = f"LuaMultiReturn<[{return_type}]>"
+            return f"LuaMultiReturn<[{return_type}]>"
         else:  # len(self.return_types) == 0:
-            return_type = "void"
-
-        functioncall = f"function {self.name}({params}): {return_type}"
-
+            return "void"
+        
+    def _docstring(self):
         docstring_parts = []
 
         if self.description:
@@ -72,42 +73,40 @@ class FunctionDeclaration(NamedTuple):
         if self.deprecated:
             docstring_parts.append(f"@deprecated {self.deprecated}")
 
-        if len(docstring_parts) > 0:
-            docstring = "\n\n".join(docstring_parts)
-            docstring = "/**\n{}\n */".format(
-                textwrap.indent(
-                    docstring,
-                    " * ",
-                    lambda _: True,
-                )
+        if len(docstring_parts) == 0:
+            return None
+
+        docstring = "\n\n".join(docstring_parts)
+        docstring = "/**\n{}\n */".format(
+            textwrap.indent(
+                docstring,
+                " * ",
+                lambda _: True,
             )
+        )
+        return docstring
+
+
+    def function_declaration(self):
+        params = self._params_declaration()
+        return_type = self._retvals_declaration()
+
+        functioncall = f"function {self.name}({params}): {return_type}"
+
+        docstring = self._docstring()
+        if docstring is not None:
             return f"{docstring}\n{functioncall}"
         else:
             return functioncall
 
     def method_declaration(self):
-        try:
-            Param.validate_order(self.params)
-        except TranspileError as e:
-            print(f"[ERROR] invalid param order for: {self}")
-            raise e
-
-        params = ", ".join([p.declaration() for p in self.params])
-        if self.varargs:
-            params += ", ...args: any[]"
-
-        if len(self.return_types) == 1:
-            return_type = self.return_types[0]
-        elif len(self.return_types) > 1:
-            return_type = ", ".join([str(rt) for rt in self.return_types])
-            return_type = f"LuaMultiReturn<[{return_type}]>"
-        else:  # len(self.return_types) == 0:
-            return_type = "void"
+        params = self._params_declaration()
+        return_type = self._retvals_declaration()
 
         functioncall = f"{self.name}({params}): {return_type};"
 
-        if self.description:
-            docstring = "/**\n{}\n */".format(textwrap.indent(self.description, " * "))
+        docstring = self._docstring()
+        if docstring is not None:
             return f"{docstring}\n{functioncall}"
         else:
             return functioncall
